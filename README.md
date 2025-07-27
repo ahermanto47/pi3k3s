@@ -1,6 +1,6 @@
 # pi3k3s
 
-On the master host(where you will be invoking ansible commands)
+On the master host(where you will be invoking ansible commands, in this case its an instance of Centos Stream 10)
 
 1. Create SSH key pair:
 
