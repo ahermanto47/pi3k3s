@@ -1,0 +1,74 @@
+---
+- name: Install k3s master
+  hosts: 10.0.0.3
+  become: true
+  tasks:
+    - name: Download k3s installation script
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: '0755'
+
+    - name: Install k3s master
+      shell: INSTALL_K3S_EXEC="server --disable servicelb --disable traefik" /tmp/k3s-install.sh
+      environment:
+        INSTALL_K3S_EXEC: "server"
+
+    - name: Wait for node token
+      wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+
+    - name: Get node token
+      command: cat /var/lib/rancher/k3s/server/node-token
+      register: node_token
+
+    - name: Store token for workers
+      set_fact:
+        k3s_token: "{{ node_token.stdout }}"
+
+    - name: Wait for k3s to be ready
+      wait_for:
+        path: /etc/rancher/k3s/k3s.yaml
+        timeout: 60
+
+    - name: Copy kubeconfig locally
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ~/.kube/config
+        flat: yes
+        mode: '0600'
+
+    - name: Wait for nodes to be ready
+      shell: kubectl wait --for=condition=Ready nodes --all --timeout=300s
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: nodes_ready
+      until: nodes_ready.rc == 0
+      retries: 10
+      delay: 30
+
+    - name: Show cluster info
+      shell: kubectl cluster-info
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: cluster_info
+
+    - name: Display cluster info
+      debug:
+        var: cluster_info.stdout_lines
+
+- name: Install k3s workers
+  hosts: pi3s:!10.0.0.3
+  become: true
+  tasks:
+    - name: Download k3s installation script
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: '0755'
+
+    - name: Install k3s agent
+      shell: /tmp/k3s-install.sh
+      environment:
+        K3S_URL: "https://10.0.0.3:6443"
+        K3S_TOKEN: "{{ hostvars['10.0.0.3']['k3s_token'] }}"
