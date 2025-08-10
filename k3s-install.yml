@@ -1,6 +1,6 @@
 ---
 - name: Install k3s master
-  hosts: 10.0.0.3
+  hosts: 10.0.0.240
   become: true
   tasks:
     - name: Download k3s installation script
@@ -58,7 +58,7 @@
         var: cluster_info.stdout_lines
 
 - name: Install k3s workers
-  hosts: pi3s:!10.0.0.3
+  hosts: pi3s:!10.0.0.240
   become: true
   tasks:
     - name: Download k3s installation script
@@ -70,5 +70,5 @@
     - name: Install k3s agent
       shell: /tmp/k3s-install.sh
       environment:
-        K3S_URL: "https://10.0.0.3:6443"
-        K3S_TOKEN: "{{ hostvars['10.0.0.3']['k3s_token'] }}"
+        K3S_URL: "https://10.0.0.240:6443"
+        K3S_TOKEN: "{{ hostvars['10.0.0.240']['k3s_token'] }}"

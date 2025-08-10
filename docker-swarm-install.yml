@@ -1,0 +1,86 @@
+---
+- name: Install Docker Swarm
+  hosts: pi0s
+  become: true
+  tasks:
+    # - name: Ensure 'docker' package is installed
+    #   ansible.builtin.pip:
+    #     name: docker
+    #     state: present  # Ensures the package is installed
+
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - python3-docker
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/raspbian/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=armhf] https://download.docker.com/linux/raspbian {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Configure Docker daemon
+      ansible.builtin.copy:
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            },
+            "data-root": "/var/lib/docker-data"
+          }
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart docker
+
+    - name: Add users to docker group
+      user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+      loop: "{{ ['admin'] }}"
+
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+
+    - name: Initialize Docker Swarm
+      docker_swarm:
+        state: present
+      when: inventory_hostname == docker_swarm_master
+      register: swarm_info
+
+    - name: Get swarm worker token
+      command: docker swarm join-token -q worker
+      register: swarm_worker_token
+      when: inventory_hostname == docker_swarm_master
+
+    - name: Join Swarm cluster
+      docker_swarm:
+        state: join
+        advertise_addr: "{{ ansible_host }}"
+        join_token: "{{ hostvars[docker_swarm_master]['swarm_worker_token']['stdout'] }}"
+        remote_addrs: ["{{ hostvars[docker_swarm_master]['inventory_hostname'] }}:2377"]
+      when: inventory_hostname != docker_swarm_master
+  

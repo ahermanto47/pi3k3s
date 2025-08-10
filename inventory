@@ -1,5 +1,17 @@
 [pi3s]
-10.0.0.3
-10.0.0.4
-10.0.0.5
-10.0.0.6
+10.0.0.240
+10.0.0.241
+10.0.0.242
+
+[pi0s]
+10.0.0.200
+10.0.0.201
+
+[all:vars]
+ansible_user=admin
+ansible_become=true
+ansible_python_interpreter=/usr/bin/python3
+k3s_master_ip=10.0.0.240
+docker_swarm_master=10.0.0.200
+ansible_become_method=sudo
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
