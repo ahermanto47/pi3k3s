@@ -1,0 +1,34 @@
+---
+- hosts: all
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: Ensure cifs-utils is installed
+      ansible.builtin.apt:
+        name: cifs-utils
+        state: present
+      become: yes
+
+    - name: Create a file with custom content
+      ansible.builtin.copy:
+        dest: /home/admin/.smbcredentials
+        content: |
+            username=user
+            password=password
+        mode: '0600' # Optional: set file permissions
+
+    - name: Create mount point
+      ansible.builtin.file:
+        path: /mnt/windows_share
+        state: directory
+        mode: '0755'
+      become: yes
+
+    - name: Mount Windows share on Raspberry Pi
+      ansible.builtin.mount:
+        src: "//10.0.0.2/Users/dad/workspace"  # Replace with your Windows server IP and share name
+        path: "/mnt/windows_share"             # Replace with your desired mount point on Raspberry Pi
+        fstype: cifs
+        opts: "credentials=/home/admin/.smbcredentials,uid=1000,gid=1000" # Adjust uid/gid as needed
+        state: mounted                         # Use 'mounted' for temporary mount
+      become: yes

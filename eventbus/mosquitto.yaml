@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosq
+  labels:
+    app: mosq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosq
+  template:
+    metadata:
+      labels:
+        app: mosq
+    spec:
+      containers:
+        - name: mosq
+          image: eclipse-mosquitto:latest
+          ports:
+            - containerPort: 1883
+              name: web
+            - containerPort: 9001
+              name: service
+          volumeMounts:
+            - name: mosq-volume
+              mountPath: /mosquitto/data
+              subPath: data
+            - name: mosq-volume
+              mountPath: /mosquitto/log
+              subPath: log
+            - name: mosq-volume
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: config/mosquitto.conf
+      volumes:
+        - name: mosq-volume
+          nfs:
+            server: 192.168.10.50
+            path: /data/kubernetes/mosquitto
+            readOnly: no

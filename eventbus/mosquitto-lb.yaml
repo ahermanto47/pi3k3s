@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosq-lb
+spec:
+  selector:
+    app: mosq
+  ports:
+    - port: 1883
+      targetPort: 1883
+      name: http
+    - port: 9001
+      targetPort: 9001
+      name: service
+  type: LoadBalancer
+  loadBalancerIP: 10.0.0.120

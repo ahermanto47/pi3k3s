@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosq
+  labels:
+    app: mosq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosq
+  template:
+    metadata:
+      labels:
+        app: mosq
+    spec:
+      containers:
+        - name: mosq
+          image: eclipse-mosquitto:latest
+          ports:
+            - containerPort: 1883
+              name: mqtt
+            - containerPort: 9001
+              name: websockets
+          volumeMounts:
+            - name: data
+              mountPath: /mosquitto/data
+            - name: log
+              mountPath: /mosquitto/log
+            - name: config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mosq-data-pvc
+        - name: log
+          persistentVolumeClaim:
+            claimName: mosq-log-pvc
+        - name: config
+          configMap:
+            name: mosq-config
